@@ -18,4 +18,3 @@ Open `index.html` — that's it. Hosted free on GitHub Pages.
 
 ## Add to your phone
 Open the site in Safari (iPhone) or Chrome (Android) → Share / menu → **Add to Home Screen**.
-
