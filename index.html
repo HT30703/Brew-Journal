@@ -247,6 +247,7 @@
 
         <div class="grid">
           <div class="field"><label>Roaster <span class="req">*</span></label><input id="roaster" list="roaster-list" placeholder="e.g. Onyx"></div>
+          <div class="field"><label>Bean name</label><input id="beanName" list="beanName-list" placeholder="e.g. Ojo de Agua"></div>
           <div class="field"><label>Origin / Region</label><input id="origin" list="origin-list" placeholder="e.g. Ethiopia, Guji"></div>
           <div class="field"><label>Brewer</label><input id="brewer" list="brewer-list" placeholder="e.g. Orea O1 Steel"></div>
           <div class="field"><label>Grinder</label><input id="grinder" list="grinder-list" placeholder="e.g. Lagom Mini 2"></div>
@@ -278,7 +279,7 @@
             <div class="field"><label>Process</label><input id="process" list="process-list" placeholder="Washed / Natural"></div>
             <div class="field"><label>Roast level</label><input id="roastLevel" list="roastLevel-list" placeholder="Light / Medium"></div>
             <div class="field"><label>Roast date</label><input id="roastDate" type="date"></div>
-            <div class="field"><label>Days off roast</label><div class="calc"><span class="big" id="daysOff">–</span><span id="daysOffTag" class="tag none">rest</span></div></div>
+            <div class="field"><label>Days off roast</label><div class="calc"><span class="big" id="daysOff">–</span></div></div>
             <div class="field wide"><label>Roaster's notes (bag)</label><input id="beanNotes" placeholder="Jasmine, bergamot, peach"></div>
           </div>
           <div class="section-line">Equipment &amp; water</div>
@@ -363,7 +364,7 @@
   </div>
 </div>
 
-<datalist id="roaster-list"></datalist><datalist id="origin-list"></datalist><datalist id="variety-list"></datalist>
+<datalist id="roaster-list"></datalist><datalist id="beanName-list"></datalist><datalist id="origin-list"></datalist><datalist id="variety-list"></datalist>
 <datalist id="process-list"></datalist><datalist id="roastLevel-list"></datalist><datalist id="brewer-list"></datalist>
 <datalist id="filter-list"></datalist><datalist id="dripAssist-list"></datalist><datalist id="grinder-list"></datalist>
 <datalist id="water-list"></datalist><datalist id="method-list"></datalist>
@@ -372,9 +373,9 @@
 
 <script>
 const LS_BREWS="brewjournal.brews.v1", LS_SUGG="brewjournal.suggestions.v1", LS_BEANS="brewjournal.beans.v1";
-const SUGGEST_FIELDS=["roaster","origin","variety","process","roastLevel","brewer","filter","dripAssist","grinder","water","method"];
-const BEAN_FIELDS=["roaster","origin","variety","process","roastLevel","roastDate","beanNotes"];
-const FIELDS=["roaster","origin","variety","process","roastLevel","roastDate","beanNotes",
+const SUGGEST_FIELDS=["roaster","beanName","origin","variety","process","roastLevel","brewer","filter","dripAssist","grinder","water","method"];
+const BEAN_FIELDS=["roaster","beanName","origin","variety","process","roastLevel","roastDate","beanNotes"];
+const FIELDS=["roaster","beanName","origin","variety","process","roastLevel","roastDate","beanNotes",
   "brewer","filter","dripAssist","grinder","grindSetting","waterTemp","water",
   "method","dose","waterG","bloomWater","bloomTime","pours","brewTime","recipeNotes",
   "rating","aroma","flavour","acidity","sweetness","body","aftertaste","tastingNotes","adjustments"];
@@ -407,7 +408,7 @@ function remember(f,v){v=(v||"").trim();if(!v)return;if(!suggestions[f])suggesti
 
 /* bean library */
 function beanSig(o){return BEAN_FIELDS.map(f=>(o[f]||"").trim().toLowerCase()).join("|");}
-function beanLabel(o){return [o.roaster,o.origin,o.roastLevel].filter(Boolean).join(" · ")+(o.roastDate?" ("+o.roastDate+")":"");}
+function beanLabel(o){return [o.roaster,o.beanName,o.origin].filter(Boolean).join(" · ")+(o.roastDate?" ("+o.roastDate+")":"");}
 function upsertBean(o,silent){if(!(o.roaster||"").trim())return;const sig=beanSig(o);
   if(beans.some(x=>beanSig(x)===sig))return;
   const bean={};BEAN_FIELDS.forEach(f=>bean[f]=o[f]||"");bean.id="bn"+Date.now()+Math.random().toString(36).slice(2,6);
@@ -451,12 +452,10 @@ $("ratioInput").addEventListener("input",()=>{const d=parseFloat($("dose").value
 $("waterG").addEventListener("input",()=>{const d=parseFloat($("dose").value),w=parseFloat($("waterG").value),r=parseFloat($("ratioInput").value);
   if(d>0&&w>0)$("ratioInput").value=(w/d).toFixed(1);else if(w>0&&r>0)$("dose").value=(w/r).toFixed(1);updateRatioTag();});
 $("roastDate").addEventListener("input",updateDaysOff);
-function updateDaysOff(){const rd=$("roastDate").value,el=$("daysOff"),t=$("daysOffTag");
-  if(!rd){el.textContent="–";t.className="tag none";t.textContent="rest";return;}
+function updateDaysOff(){const rd=$("roastDate").value,el=$("daysOff");
+  if(!rd){el.textContent="–";return;}
   const days=Math.round((Date.now()-new Date(rd+"T00:00:00").getTime())/86400000);
-  el.textContent=days+(Math.abs(days)===1?" day":" days");let c,l;
-  if(days<4){c="light";l="too fresh";}else if(days<=21){c="balanced";l="prime";}else if(days<=35){c="strong";l="fading";}else{c="none";l="past best";}
-  t.className="tag "+c;t.textContent=l;}
+  el.textContent=days+(Math.abs(days)===1?" day":" days");}
 
 /* rating */
 (function(){const p=$("pips");for(let i=1;i<=10;i++){const s=document.createElement("span");s.dataset.v=i;p.appendChild(s);}})();
@@ -533,7 +532,7 @@ function renderHistory(){
   buildMenu();
   if(!list.length){host.innerHTML=`<div class="empty"><span>☕</span>${brews.length?"No brews in this view.":"No brews yet — tap “New brew” to start."}</div>`;return;}
   host.innerHTML=list.map(b=>{
-    const beanLine=[b.origin,b.variety,b.process].filter(Boolean).join(" · ");
+    const beanLine=[b.beanName,b.origin,b.variety,b.process].filter(Boolean).join(" · ");
     const dor=daysOffStr(b),grind=[b.grinder,b.grindSetting].filter(Boolean).join(" @ ");
     const dw=(b.dose||b.waterG)?`${esc(b.dose||"?")}g : ${esc(b.waterG||"?")}g`:"";
     const dateStr=b.createdAt?new Date(b.createdAt).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}):"";
