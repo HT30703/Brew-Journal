@@ -1,5 +1,5 @@
-// Minimal offline cache for Brew Journal
-const CACHE = "brew-journal-v1";
+// Brew Journal service worker — network-first so updates always show
+const CACHE = "brew-journal-v2";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.svg"];
 
 self.addEventListener("install", e => {
@@ -13,15 +13,14 @@ self.addEventListener("activate", e => {
   );
 });
 
+// Network-first: always try the latest from the server, fall back to cache when offline.
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   e.respondWith(
-    caches.match(e.request).then(hit =>
-      hit || fetch(e.request).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
-        return res;
-      }).catch(() => caches.match("./index.html"))
-    )
+    fetch(e.request).then(res => {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+      return res;
+    }).catch(() => caches.match(e.request).then(hit => hit || caches.match("./index.html")))
   );
 });
